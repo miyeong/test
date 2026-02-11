@@ -32,11 +32,16 @@ const contentInput = document.getElementById("content");
 const isNoticeInput = document.getElementById("is-notice");
 const paginationNav = document.getElementById("pagination-nav");
 const paginationEl = document.getElementById("pagination");
+const searchForm = document.getElementById("search-form");
+const searchCategory = document.getElementById("search-category");
+const searchField = document.getElementById("search-field");
+const searchKeyword = document.getElementById("search-keyword");
 
 const noticeModal = new bootstrap.Modal(document.getElementById("notice-modal"));
 
 let notices = loadNotices();
 let currentPage = 1;
+let filteredNotices = [];
 
 renderNotices();
 
@@ -44,6 +49,12 @@ openCreateBtn.addEventListener("click", () => {
   resetForm();
   modalTitle.textContent = "공지 작성";
   saveBtn.textContent = "등록";
+});
+
+searchForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  currentPage = 1;
+  renderNotices();
 });
 
 noticeForm.addEventListener("submit", (event) => {
@@ -58,16 +69,16 @@ noticeForm.addEventListener("submit", (event) => {
   }
 
   const existingId = noticeIdInput.value;
-  const isNotice = isNoticeInput.checked;
+  const fixedNotice = isNoticeInput.checked;
 
   if (existingId) {
     notices = notices.map((notice) =>
-      notice.id === existingId ? { ...notice, title, author, content, isNotice } : notice
+      notice.id === existingId ? { ...notice, title, author, content, isNotice: fixedNotice } : notice
     );
   } else {
     notices.push({
       id: crypto.randomUUID(),
-      isNotice,
+      isNotice: fixedNotice,
       number: null,
       title,
       author,
@@ -78,7 +89,6 @@ noticeForm.addEventListener("submit", (event) => {
   }
 
   applyRowNumbers();
-  sortNotices();
   persistNotices();
   currentPage = 1;
   renderNotices();
@@ -131,8 +141,8 @@ function persistNotices() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(notices));
 }
 
-function sortNotices() {
-  notices.sort((a, b) => {
+function sortNotices(data) {
+  return [...data].sort((a, b) => {
     if (a.isNotice !== b.isNotice) {
       return Number(b.isNotice) - Number(a.isNotice);
     }
@@ -143,6 +153,36 @@ function sortNotices() {
 
     return b.createdAt.localeCompare(a.createdAt);
   });
+}
+
+function applyFilters() {
+  const category = searchCategory.value;
+  const field = searchField.value;
+  const keyword = searchKeyword.value.trim().toLowerCase();
+
+  let result = sortNotices(notices);
+
+  if (category === "notice") {
+    result = result.filter((notice) => notice.isNotice);
+  }
+
+  if (category === "general") {
+    result = result.filter((notice) => !notice.isNotice);
+  }
+
+  if (keyword) {
+    if (field === "author") {
+      result = result.filter((notice) => notice.author.toLowerCase().includes(keyword));
+    } else {
+      result = result.filter((notice) => {
+        const title = notice.title.toLowerCase();
+        const content = notice.content.toLowerCase();
+        return title.includes(keyword) || content.includes(keyword);
+      });
+    }
+  }
+
+  return result;
 }
 
 function applyRowNumbers() {
@@ -167,15 +207,16 @@ function applyRowNumbers() {
 }
 
 function getPageItems() {
-  sortNotices();
-  const totalPages = Math.max(1, Math.ceil(notices.length / ROWS_PER_PAGE));
+  filteredNotices = applyFilters();
+
+  const totalPages = Math.max(1, Math.ceil(filteredNotices.length / ROWS_PER_PAGE));
   currentPage = Math.min(Math.max(1, currentPage), totalPages);
 
   const start = (currentPage - 1) * ROWS_PER_PAGE;
   const end = start + ROWS_PER_PAGE;
 
   return {
-    items: notices.slice(start, end),
+    items: filteredNotices.slice(start, end),
     totalPages,
   };
 }
@@ -186,8 +227,8 @@ function renderNotices() {
 
   const { items, totalPages } = getPageItems();
 
-  emptyState.classList.toggle("d-none", notices.length > 0);
-  paginationNav.classList.toggle("d-none", notices.length === 0);
+  emptyState.classList.toggle("d-none", filteredNotices.length > 0);
+  paginationNav.classList.toggle("d-none", filteredNotices.length === 0);
 
   items.forEach((notice) => {
     const fragment = rowTemplate.content.cloneNode(true);
@@ -277,8 +318,8 @@ function renderPagination(totalPages) {
 }
 
 function clampCurrentPage() {
-  const totalPages = Math.max(1, Math.ceil(notices.length / ROWS_PER_PAGE));
-  currentPage = Math.min(currentPage, totalPages);
+  const totalPages = Math.max(1, Math.ceil(filteredNotices.length / ROWS_PER_PAGE));
+  currentPage = Math.min(Math.max(1, currentPage), totalPages);
 }
 
 function openEditModal(id) {
