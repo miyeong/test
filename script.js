@@ -1,134 +1,22 @@
-const STORAGE_KEY = "company-notices-v2";
+const STORAGE_KEY = "company-notices-vue";
 const ROWS_PER_PAGE = 10;
 
 const defaultNotices = [
   { id: crypto.randomUUID(), isNotice: true, number: null, title: "[다브인터내셔널] ★설 한정 특가★ 건강기능 식품 4가지, 단 5일 반짝 세일!", author: "이주희", createdAt: "2026-02-09", views: 147, content: "설 한정 특가 이벤트 안내" },
   { id: crypto.randomUUID(), isNotice: true, number: null, title: "[기타공지] 인생코치 서비스 플랫폼 이전 및 홈페이지 통합 리뉴얼 안내", author: "임경성", createdAt: "2026-02-06", views: 65, content: "서비스 이전 및 리뉴얼 안내" },
-  { id: crypto.randomUUID(), isNotice: true, number: null, title: "[ERP/시스템] 수업리포트를 분석하는 AI코칭어시스턴트 서비스 종료안내", author: "박재경", createdAt: "2026-01-14", views: 411, content: "서비스 종료 공지" },
   { id: crypto.randomUUID(), isNotice: false, number: 11744, title: "[물류/배송] 2026년 설 택배 마감 일정 안내", author: "송승민", createdAt: "2026-02-10", views: 33, content: "택배 마감 일정을 확인해 주세요." },
   { id: crypto.randomUUID(), isNotice: false, number: 11743, title: "[기타공지] 비전마케팅부 12월 프로모션 내역입니다", author: "김경미", createdAt: "2026-02-10", views: 65, content: "12월 프로모션 안내" },
   { id: crypto.randomUUID(), isNotice: false, number: 11742, title: "[기타공지] 코칭회원관리에 수금된 회비 매칭취소 가능합니다", author: "김현수", createdAt: "2026-02-10", views: 111, content: "회원관리 메뉴 개선 안내" },
-  { id: crypto.randomUUID(), isNotice: false, number: 11741, title: "[기타공지] 마수대체 처리방법 공지드립니다.", author: "김현수", createdAt: "2026-02-10", views: 124, content: "처리방법 안내" },
-  { id: crypto.randomUUID(), isNotice: false, number: 11740, title: "[기타공지] 사업자번호 현금영수증 등록 방법", author: "김현수", createdAt: "2026-02-10", views: 58, content: "등록 방법 안내" },
-  { id: crypto.randomUUID(), isNotice: false, number: 11739, title: "[기타공지] 수수료통장 변경안내", author: "김현수", createdAt: "2026-02-10", views: 75, content: "계좌 변경 안내" },
-  { id: crypto.randomUUID(), isNotice: false, number: 11738, title: "[진학전략연구소] 2성적향상코칭 스페셜교육 베이직(BASIC) 37기 모집 알림", author: "콘텐츠연구개발팀", createdAt: "2026-02-10", views: 23, content: "모집 안내" },
-  { id: crypto.randomUUID(), isNotice: false, number: 11737, title: "[더세이브] [CX팀] 2026 1월 마감 고객문의 이슈", author: "최현미", createdAt: "2026-02-09", views: 92, content: "마감 이슈 공유" },
-  { id: crypto.randomUUID(), isNotice: false, number: 11736, title: "[다브인터내셔널] ★설 한정 특가★ 건강기능 식품 4가지, 단 5일 반짝 세일!", author: "이주희", createdAt: "2026-02-09", views: 147, content: "이벤트 안내" },
 ];
 
-const tableBody = document.getElementById("notice-table-body");
-const emptyState = document.getElementById("empty-state");
-const rowTemplate = document.getElementById("notice-row-template");
-const checkAll = document.getElementById("check-all");
-const deleteSelectedBtn = document.getElementById("delete-selected-btn");
-const openCreateBtn = document.getElementById("open-create-btn");
-const noticeForm = document.getElementById("notice-form");
-const modalTitle = document.getElementById("notice-modal-label");
-const saveBtn = document.getElementById("save-btn");
-const noticeIdInput = document.getElementById("notice-id");
-const titleInput = document.getElementById("title");
-const authorInput = document.getElementById("author");
-const contentInput = document.getElementById("content");
-const isNoticeInput = document.getElementById("is-notice");
-const paginationNav = document.getElementById("pagination-nav");
-const paginationEl = document.getElementById("pagination");
-const searchForm = document.getElementById("search-form");
-const searchCategory = document.getElementById("search-category");
-const searchField = document.getElementById("search-field");
-const searchKeyword = document.getElementById("search-keyword");
+const { createApp } = Vue;
 
-const noticeModal = new bootstrap.Modal(document.getElementById("notice-modal"));
-
-let notices = loadNotices();
-let currentPage = 1;
-let filteredNotices = [];
-
-renderNotices();
-
-openCreateBtn.addEventListener("click", () => {
-  resetForm();
-  modalTitle.textContent = "공지 작성";
-  saveBtn.textContent = "등록";
-});
-
-searchForm.addEventListener("submit", (event) => {
-  event.preventDefault();
-  currentPage = 1;
-  renderNotices();
-});
-
-noticeForm.addEventListener("submit", (event) => {
-  event.preventDefault();
-
-  const title = titleInput.value.trim();
-  const author = authorInput.value.trim();
-  const content = contentInput.value.trim();
-
-  if (!title || !author || !content) {
-    return;
-  }
-
-  const existingId = noticeIdInput.value;
-  const fixedNotice = isNoticeInput.checked;
-
-  if (existingId) {
-    notices = notices.map((notice) =>
-      notice.id === existingId ? { ...notice, title, author, content, isNotice: fixedNotice } : notice
-    );
-  } else {
-    notices.push({
-      id: crypto.randomUUID(),
-      isNotice: fixedNotice,
-      number: null,
-      title,
-      author,
-      content,
-      createdAt: formatDate(new Date()),
-      views: 0,
-    });
-  }
-
-  applyRowNumbers();
-  persistNotices();
-  currentPage = 1;
-  renderNotices();
-  noticeModal.hide();
-});
-
-checkAll.addEventListener("change", () => {
-  tableBody.querySelectorAll(".row-check").forEach((checkbox) => {
-    checkbox.checked = checkAll.checked;
-  });
-});
-
-deleteSelectedBtn.addEventListener("click", () => {
-  const selectedIds = Array.from(tableBody.querySelectorAll(".row-check:checked")).map((checkbox) => checkbox.dataset.id);
-
-  if (selectedIds.length === 0) {
-    window.alert("삭제할 공지사항을 선택해 주세요.");
-    return;
-  }
-
-  if (!window.confirm(`선택한 ${selectedIds.length}건의 공지사항을 삭제하시겠습니까?`)) {
-    return;
-  }
-
-  notices = notices.filter((notice) => !selectedIds.includes(notice.id));
-  applyRowNumbers();
-  persistNotices();
-  clampCurrentPage();
-  renderNotices();
-});
-
-function loadNotices() {
+function loadInitialNotices() {
   const raw = localStorage.getItem(STORAGE_KEY);
-
   if (!raw) {
-    const seeded = [...defaultNotices];
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded));
-    return seeded;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultNotices));
+    return [...defaultNotices];
   }
-
   try {
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed : [...defaultNotices];
@@ -137,216 +25,200 @@ function loadNotices() {
   }
 }
 
-function persistNotices() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(notices));
-}
-
-function sortNotices(data) {
-  return [...data].sort((a, b) => {
-    if (a.isNotice !== b.isNotice) {
-      return Number(b.isNotice) - Number(a.isNotice);
-    }
-
-    if (a.number !== null && b.number !== null) {
-      return b.number - a.number;
-    }
-
-    return b.createdAt.localeCompare(a.createdAt);
-  });
-}
-
-function applyFilters() {
-  const category = searchCategory.value;
-  const field = searchField.value;
-  const keyword = searchKeyword.value.trim().toLowerCase();
-
-  let result = sortNotices(notices);
-
-  if (category === "notice") {
-    result = result.filter((notice) => notice.isNotice);
-  }
-
-  if (category === "general") {
-    result = result.filter((notice) => !notice.isNotice);
-  }
-
-  if (keyword) {
-    if (field === "author") {
-      result = result.filter((notice) => notice.author.toLowerCase().includes(keyword));
-    } else {
-      result = result.filter((notice) => {
-        const title = notice.title.toLowerCase();
-        const content = notice.content.toLowerCase();
-        return title.includes(keyword) || content.includes(keyword);
+createApp({
+  data() {
+    return {
+      notices: loadInitialNotices(),
+      search: {
+        category: "all",
+        field: "author",
+        keyword: "",
+      },
+      form: {
+        title: "",
+        author: "",
+        content: "",
+        isNotice: false,
+      },
+      selectedIds: [],
+      checkAll: false,
+      currentPage: 1,
+      editingId: null,
+      modal: null,
+    };
+  },
+  computed: {
+    sortedNotices() {
+      return [...this.notices].sort((a, b) => {
+        if (a.isNotice !== b.isNotice) {
+          return Number(b.isNotice) - Number(a.isNotice);
+        }
+        if (a.number !== null && b.number !== null) {
+          return b.number - a.number;
+        }
+        return b.createdAt.localeCompare(a.createdAt);
       });
-    }
-  }
+    },
+    filteredNotices() {
+      const keyword = this.search.keyword.trim().toLowerCase();
+      return this.sortedNotices.filter((notice) => {
+        if (this.search.category === "notice" && !notice.isNotice) {
+          return false;
+        }
+        if (this.search.category === "general" && notice.isNotice) {
+          return false;
+        }
+        if (!keyword) {
+          return true;
+        }
+        if (this.search.field === "author") {
+          return notice.author.toLowerCase().includes(keyword);
+        }
+        return notice.title.toLowerCase().includes(keyword) || notice.content.toLowerCase().includes(keyword);
+      });
+    },
+    totalPages() {
+      return Math.max(1, Math.ceil(this.filteredNotices.length / ROWS_PER_PAGE));
+    },
+    pageItems() {
+      const start = (this.currentPage - 1) * ROWS_PER_PAGE;
+      return this.filteredNotices.slice(start, start + ROWS_PER_PAGE);
+    },
+  },
+  watch: {
+    filteredNotices() {
+      if (this.currentPage > this.totalPages) {
+        this.currentPage = this.totalPages;
+      }
+      this.selectedIds = this.selectedIds.filter((id) => this.filteredNotices.some((notice) => notice.id === id));
+      this.checkAll = false;
+    },
+  },
+  mounted() {
+    this.modal = new bootstrap.Modal(document.getElementById("notice-modal"));
+  },
+  methods: {
+    persist() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.notices));
+    },
+    searchNotices() {
+      this.currentPage = 1;
+    },
+    toggleCheckAll() {
+      if (!this.checkAll) {
+        this.selectedIds = [];
+        return;
+      }
+      this.selectedIds = this.pageItems.map((notice) => notice.id);
+    },
+    movePage(page) {
+      if (page < 1 || page > this.totalPages || page === this.currentPage) {
+        return;
+      }
+      this.currentPage = page;
+      this.checkAll = false;
+      this.selectedIds = [];
+    },
+    openCreateModal() {
+      this.editingId = null;
+      this.form = { title: "", author: "", content: "", isNotice: false };
+    },
+    openEditModal(id) {
+      const target = this.notices.find((notice) => notice.id === id);
+      if (!target) {
+        return;
+      }
+      target.views += 1;
+      this.persist();
+      this.editingId = id;
+      this.form = {
+        title: target.title,
+        author: target.author,
+        content: target.content,
+        isNotice: target.isNotice,
+      };
+      this.modal.show();
+    },
+    applyRowNumbers() {
+      const maxNumber = this.notices
+        .filter((notice) => Number.isInteger(notice.number))
+        .reduce((max, current) => Math.max(max, current.number), 11729);
 
-  return result;
-}
+      let nextNumber = maxNumber;
+      this.notices = this.notices.map((notice) => {
+        if (notice.isNotice) {
+          return { ...notice, number: null };
+        }
+        if (!Number.isInteger(notice.number)) {
+          nextNumber += 1;
+          return { ...notice, number: nextNumber };
+        }
+        return notice;
+      });
+    },
+    saveNotice() {
+      if (!this.form.title || !this.form.author || !this.form.content) {
+        return;
+      }
 
-function applyRowNumbers() {
-  const maxNumber = notices
-    .filter((notice) => Number.isInteger(notice.number))
-    .reduce((max, current) => Math.max(max, current.number), 11729);
+      if (this.editingId) {
+        this.notices = this.notices.map((notice) =>
+          notice.id === this.editingId
+            ? {
+                ...notice,
+                title: this.form.title,
+                author: this.form.author,
+                content: this.form.content,
+                isNotice: this.form.isNotice,
+              }
+            : notice
+        );
+      } else {
+        this.notices.push({
+          id: crypto.randomUUID(),
+          isNotice: this.form.isNotice,
+          number: null,
+          title: this.form.title,
+          author: this.form.author,
+          content: this.form.content,
+          createdAt: this.formatDate(new Date()),
+          views: 0,
+        });
+      }
 
-  let nextNumber = maxNumber;
-
-  notices = notices.map((notice) => {
-    if (notice.isNotice) {
-      return { ...notice, number: null };
-    }
-
-    if (!Number.isInteger(notice.number)) {
-      nextNumber += 1;
-      return { ...notice, number: nextNumber };
-    }
-
-    return notice;
-  });
-}
-
-function getPageItems() {
-  filteredNotices = applyFilters();
-
-  const totalPages = Math.max(1, Math.ceil(filteredNotices.length / ROWS_PER_PAGE));
-  currentPage = Math.min(Math.max(1, currentPage), totalPages);
-
-  const start = (currentPage - 1) * ROWS_PER_PAGE;
-  const end = start + ROWS_PER_PAGE;
-
-  return {
-    items: filteredNotices.slice(start, end),
-    totalPages,
-  };
-}
-
-function renderNotices() {
-  tableBody.innerHTML = "";
-  checkAll.checked = false;
-
-  const { items, totalPages } = getPageItems();
-
-  emptyState.classList.toggle("d-none", filteredNotices.length > 0);
-  paginationNav.classList.toggle("d-none", filteredNotices.length === 0);
-
-  items.forEach((notice) => {
-    const fragment = rowTemplate.content.cloneNode(true);
-    const numberEl = fragment.querySelector(".notice-number");
-    const rowCheck = fragment.querySelector(".row-check");
-    const badge = fragment.querySelector(".notice-badge");
-    const titleBtn = fragment.querySelector(".notice-title");
-    const authorEl = fragment.querySelector(".notice-author");
-    const dateEl = fragment.querySelector(".notice-date");
-    const viewsEl = fragment.querySelector(".notice-views");
-    const editBtn = fragment.querySelector(".edit-btn");
-    const deleteBtn = fragment.querySelector(".delete-btn");
-
-    numberEl.textContent = notice.isNotice ? "공지" : String(notice.number ?? "-");
-    rowCheck.dataset.id = notice.id;
-
-    badge.classList.toggle("d-none", !notice.isNotice);
-    titleBtn.textContent = notice.title;
-    authorEl.textContent = notice.author;
-    dateEl.textContent = notice.createdAt;
-    viewsEl.textContent = String(notice.views);
-
-    titleBtn.addEventListener("click", () => {
-      notices = notices.map((item) => (item.id === notice.id ? { ...item, views: item.views + 1 } : item));
-      persistNotices();
-      renderNotices();
-      openEditModal(notice.id);
-    });
-
-    editBtn.addEventListener("click", () => {
-      openEditModal(notice.id);
-    });
-
-    deleteBtn.addEventListener("click", () => {
+      this.applyRowNumbers();
+      this.persist();
+      this.currentPage = 1;
+      this.modal.hide();
+    },
+    deleteNotice(id) {
       if (!window.confirm("이 공지사항을 삭제하시겠습니까?")) {
         return;
       }
-
-      notices = notices.filter((item) => item.id !== notice.id);
-      applyRowNumbers();
-      persistNotices();
-      clampCurrentPage();
-      renderNotices();
-    });
-
-    tableBody.append(fragment);
-  });
-
-  renderPagination(totalPages);
-}
-
-function renderPagination(totalPages) {
-  paginationEl.innerHTML = "";
-
-  const prevDisabled = currentPage === 1 ? " disabled" : "";
-  paginationEl.insertAdjacentHTML(
-    "beforeend",
-    `<li class="page-item${prevDisabled}"><button class="page-link" data-page="${currentPage - 1}" aria-label="이전">&laquo;</button></li>`
-  );
-
-  for (let page = 1; page <= totalPages; page += 1) {
-    const active = page === currentPage ? " active" : "";
-    paginationEl.insertAdjacentHTML(
-      "beforeend",
-      `<li class="page-item${active}"><button class="page-link" data-page="${page}">${page}</button></li>`
-    );
-  }
-
-  const nextDisabled = currentPage === totalPages ? " disabled" : "";
-  paginationEl.insertAdjacentHTML(
-    "beforeend",
-    `<li class="page-item${nextDisabled}"><button class="page-link" data-page="${currentPage + 1}" aria-label="다음">&raquo;</button></li>`
-  );
-
-  paginationEl.querySelectorAll(".page-link").forEach((button) => {
-    button.addEventListener("click", () => {
-      const targetPage = Number(button.dataset.page);
-
-      if (!Number.isInteger(targetPage) || targetPage < 1 || targetPage > totalPages || targetPage === currentPage) {
+      this.notices = this.notices.filter((notice) => notice.id !== id);
+      this.applyRowNumbers();
+      this.persist();
+      this.selectedIds = this.selectedIds.filter((selectedId) => selectedId !== id);
+    },
+    deleteSelected() {
+      if (this.selectedIds.length === 0) {
+        window.alert("삭제할 공지사항을 선택해 주세요.");
         return;
       }
-
-      currentPage = targetPage;
-      renderNotices();
-    });
-  });
-}
-
-function clampCurrentPage() {
-  const totalPages = Math.max(1, Math.ceil(filteredNotices.length / ROWS_PER_PAGE));
-  currentPage = Math.min(Math.max(1, currentPage), totalPages);
-}
-
-function openEditModal(id) {
-  const target = notices.find((notice) => notice.id === id);
-
-  if (!target) {
-    return;
-  }
-
-  noticeIdInput.value = target.id;
-  titleInput.value = target.title;
-  authorInput.value = target.author;
-  contentInput.value = target.content;
-  isNoticeInput.checked = target.isNotice;
-  modalTitle.textContent = "공지 수정";
-  saveBtn.textContent = "수정 저장";
-  noticeModal.show();
-}
-
-function resetForm() {
-  noticeForm.reset();
-  noticeIdInput.value = "";
-}
-
-function formatDate(date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
+      if (!window.confirm(`선택한 ${this.selectedIds.length}건의 공지사항을 삭제하시겠습니까?`)) {
+        return;
+      }
+      this.notices = this.notices.filter((notice) => !this.selectedIds.includes(notice.id));
+      this.applyRowNumbers();
+      this.persist();
+      this.selectedIds = [];
+      this.checkAll = false;
+    },
+    formatDate(date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    },
+  },
+}).mount("#app");
