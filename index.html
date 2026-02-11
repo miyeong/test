@@ -35,23 +35,20 @@
 
       <form id="search-form" class="row g-2 align-items-end mb-3" aria-label="공지사항 검색">
         <div class="col-12 col-md-3">
-          <label for="search-category" class="form-label">말머리</label>
-          <select id="search-category" class="form-select">
+          <select id="search-category" class="form-select" aria-label="말머리">
             <option value="all">전체</option>
             <option value="notice">공지</option>
             <option value="general">일반</option>
           </select>
         </div>
         <div class="col-12 col-md-3">
-          <label for="search-field" class="form-label">검색조건</label>
-          <select id="search-field" class="form-select">
+          <select id="search-field" class="form-select" aria-label="검색조건">
             <option value="author">작성자명</option>
             <option value="title-content">제목+내용</option>
           </select>
         </div>
         <div class="col-12 col-md-4">
-          <label for="search-keyword" class="form-label">검색어</label>
-          <input id="search-keyword" type="text" class="form-control" placeholder="검색어를 입력하세요" />
+          <input id="search-keyword" type="text" class="form-control" placeholder="검색어를 입력하세요" aria-label="검색어" />
         </div>
         <div class="col-12 col-md-2 d-grid">
           <button type="submit" class="btn btn-primary">검색</button>
